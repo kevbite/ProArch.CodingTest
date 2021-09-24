@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Runtime.Serialization;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -12,22 +11,26 @@ namespace ProArch.CodingTest.ExternalInvoices
     public class ExternalInvoiceServiceResilienceDecorator : IExternalInvoiceServiceWrapper
     {
         private readonly IExternalInvoiceServiceWrapper _inner;
-        private IFailoverInvoiceService _failoverInvoiceService;
+        private readonly IFailoverInvoiceService _failoverInvoiceService;
 
-        private readonly RetryPolicy RetryPolicy = Policy
+        private readonly RetryPolicy _retryPolicy = Policy
             .Handle<Exception>()
             .Retry(3);
+
+        private readonly CircuitBreakerPolicy _circuitBreakerPolicy;
         
-        private readonly CircuitBreakerPolicy CircuitBreakerPolicy = Policy
-            .Handle<Exception>()
-            .CircuitBreaker(1, TimeSpan.FromMinutes(1));
-
-
-        public ExternalInvoiceServiceResilienceDecorator(IExternalInvoiceServiceWrapper inner, IFailoverInvoiceService failoverInvoiceService) => (_inner, _failoverInvoiceService) = (inner, failoverInvoiceService);
+        public ExternalInvoiceServiceResilienceDecorator(IExternalInvoiceServiceWrapper inner, IFailoverInvoiceService failoverInvoiceService, ExternalInvoiceServiceResilienceOptions options)
+        {
+            (_inner, _failoverInvoiceService) = (inner, failoverInvoiceService);
+            
+            _circuitBreakerPolicy = Policy
+                .Handle<Exception>()
+                .CircuitBreaker(1, options.CircuitBreakDuration);
+        }
 
         public ExternalInvoice[] GetInvoices(string supplierId)
         {
-            var executeAndCapture = CircuitBreakerPolicy.ExecuteAndCapture(() => RetryPolicy.Execute(() => _inner.GetInvoices(supplierId)));
+            var executeAndCapture = _circuitBreakerPolicy.ExecuteAndCapture(() => _retryPolicy.Execute(() => _inner.GetInvoices(supplierId)));
 
             if (executeAndCapture.Outcome == OutcomeType.Failure)
             {

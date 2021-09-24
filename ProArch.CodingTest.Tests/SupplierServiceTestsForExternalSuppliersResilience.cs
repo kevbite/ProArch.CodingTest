@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using FluentAssertions;
 using ProArch.CodingTest.External;
 using ProArch.CodingTest.ExternalInvoices;
@@ -132,6 +133,38 @@ namespace ProArch.CodingTest.Tests
                     {
                         Year = 2020,
                         TotalSpend = 5
+                    }
+                }
+            });
+        }
+        
+        [Fact]
+        public async Task ShouldResumeToExternalServiceAfterAGivenPeriodOfTime()
+        {
+            var supplier = _harness.AddExternalSupplier();
+            _harness.AddFailoverInvoiceCollection(supplier, DateTime.Today, Array.Empty<ExternalInvoice>());
+            _harness.AddExternalInvoice(supplier, 88, 1988);
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 1!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 2!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 3!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 4!"));
+
+            var circuitBreakDuration = TimeSpan.FromMilliseconds(500);
+            var spendService = _harness.CreateSpendService(circuitBreakDuration);
+            spendService.GetTotalSpend(supplier.Id);
+
+            await Task.Delay(circuitBreakDuration);
+            var spendSummary = spendService.GetTotalSpend(supplier.Id);
+
+            spendSummary.Should().BeEquivalentTo(new
+            {
+                Name = supplier.Name,
+                Years = new[]
+                {
+                    new
+                    {
+                        Year = 1988,
+                        TotalSpend = 88
                     }
                 }
             });

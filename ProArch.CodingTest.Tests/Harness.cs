@@ -64,9 +64,13 @@ namespace ProArch.CodingTest.Tests
             return supplier;
         }
 
-        public SpendService CreateSpendService()
+        public SpendService CreateSpendService(TimeSpan? circuitBreakDuration = null)
         {
-            var externalInvoiceServiceResilienceDecorator = new ExternalInvoiceServiceResilienceDecorator(this, this);
+            var options = circuitBreakDuration.HasValue
+                ? new ExternalInvoiceServiceResilienceOptions(circuitBreakDuration.Value)
+                : ExternalInvoiceServiceResilienceOptions.Default;
+            
+            var externalInvoiceServiceResilienceDecorator = new ExternalInvoiceServiceResilienceDecorator(this, this, options);
 
             var yearAmountsQueryHandler = new YearAmountsQueryHandler(this, externalInvoiceServiceResilienceDecorator);
 
