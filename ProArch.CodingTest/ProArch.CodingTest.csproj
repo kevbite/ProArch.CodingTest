@@ -10,4 +10,8 @@
     <ProjectReference Include="..\ProArch.CodingTest.External\ProArch.CodingTest.External.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Polly" Version="7.2.2" />
+  </ItemGroup>
+
 </Project>

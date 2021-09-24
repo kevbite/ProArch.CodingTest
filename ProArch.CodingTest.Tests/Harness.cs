@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AutoFixture;
@@ -15,15 +16,21 @@ namespace ProArch.CodingTest.Tests
         private readonly List<Invoice> _internalInvoices = new();
         private readonly List<(int supplierId, ExternalInvoice invoice)> _externalInvoices = new();
         private readonly Fixture _fixture = new();
+        private readonly Queue<Action> _externalInvoiceGetInvoicesActions = new();
 
         Supplier ISupplierService.GetById(int id) => _suppliers.SingleOrDefault(x => x.Id == id);
 
         IQueryable<Invoice> IInvoiceRepository.Get() => _internalInvoices.AsQueryable();
 
         ExternalInvoice[] IExternalInvoiceServiceWrapper.GetInvoices(string supplierId)
-            => _externalInvoices.Where(x => x.supplierId.ToString() == supplierId)
+        {
+            if (_externalInvoiceGetInvoicesActions.TryDequeue(out var action))
+                action.Invoke();
+
+            return _externalInvoices.Where(x => x.supplierId.ToString() == supplierId)
                 .Select(x => x.invoice)
                 .ToArray();
+        }
 
         public void AddInternalInvoice(Supplier supplier, decimal amount, int year)
         {
@@ -52,9 +59,16 @@ namespace ProArch.CodingTest.Tests
 
         public SpendService CreateSpendService()
         {
-            var yearAmountsQueryHandler = new YearAmountsQueryHandler(this, this);
-            
+            var externalInvoiceServiceResilienceDecorator = new ExternalInvoiceServiceResilienceDecorator(this);
+
+            var yearAmountsQueryHandler = new YearAmountsQueryHandler(this, externalInvoiceServiceResilienceDecorator);
+
             return new SpendService(this, yearAmountsQueryHandler);
+        }
+
+        public void AddExternalInvoiceAction(Action action)
+        {
+            _externalInvoiceGetInvoicesActions.Enqueue(action);
         }
 
         public void AddExternalInvoice(Supplier supplier, int amount, int year)
