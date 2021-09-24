@@ -101,5 +101,40 @@ namespace ProArch.CodingTest.Tests
 
             spendSummary.Should().Throw<FailoverInvoicesOutOfDateException>();
         }
+        
+        
+        [Fact]
+        public void ShouldReturnInvoicesFromFailoverInvoicesAfter3ErrorsOnContinuousRequests()
+        {
+            var supplier = _harness.AddExternalSupplier();
+            _harness.AddFailoverInvoiceCollection(supplier, DateTime.Today, new ExternalInvoice
+                {
+                    TotalAmount = 5,
+                    Year = 2020
+                });
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 1!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 2!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 3!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 4!"));
+
+            var spendService = _harness.CreateSpendService();
+            spendService.GetTotalSpend(supplier.Id);
+            
+            var spendSummary = spendService.GetTotalSpend(supplier.Id);
+
+            _harness.ExternalInvoiceServiceCallCount.Should().Be(4);
+            spendSummary.Should().BeEquivalentTo(new
+            {
+                Name = supplier.Name,
+                Years = new[]
+                {
+                    new
+                    {
+                        Year = 2020,
+                        TotalSpend = 5
+                    }
+                }
+            });
+        }
     }
 }
