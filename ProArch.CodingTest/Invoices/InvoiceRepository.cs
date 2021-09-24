@@ -3,11 +3,16 @@ using System.Linq;
 
 namespace ProArch.CodingTest.Invoices
 {
-    public class InvoiceRepository
+    public class InvoiceRepository : IInvoiceRepository
     {
         public IQueryable<Invoice> Get()
         {
             return new List<Invoice>().AsQueryable();
         }
+    }
+
+    public interface IInvoiceRepository
+    {
+        IQueryable<Invoice> Get();
     }
 }
