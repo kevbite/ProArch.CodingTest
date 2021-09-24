@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using AutoFixture;
 using ProArch.CodingTest.External;
 using ProArch.CodingTest.ExternalInvoices;
@@ -18,13 +19,16 @@ namespace ProArch.CodingTest.Tests
         private readonly Dictionary<int, FailoverInvoiceCollection> _failoverlInvoices = new();
         private readonly Fixture _fixture = new();
         private readonly Queue<Action> _externalInvoiceGetInvoicesActions = new();
-
+        private int _externalInvoiceServiceCallCount = 0;
+        public int ExternalInvoiceServiceCallCount => _externalInvoiceServiceCallCount;
         Supplier ISupplierService.GetById(int id) => _suppliers.SingleOrDefault(x => x.Id == id);
 
         IQueryable<Invoice> IInvoiceRepository.Get() => _internalInvoices.AsQueryable();
 
         ExternalInvoice[] IExternalInvoiceServiceWrapper.GetInvoices(string supplierId)
         {
+            Interlocked.Increment(ref _externalInvoiceServiceCallCount);
+            
             if (_externalInvoiceGetInvoicesActions.TryDequeue(out var action))
                 action.Invoke();
 

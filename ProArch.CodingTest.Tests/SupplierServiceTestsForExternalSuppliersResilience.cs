@@ -1,6 +1,7 @@
 using System;
 using FluentAssertions;
 using ProArch.CodingTest.External;
+using ProArch.CodingTest.ExternalInvoices;
 using ProArch.CodingTest.Summary;
 using Xunit;
 
@@ -24,12 +25,7 @@ namespace ProArch.CodingTest.Tests
             }
 
             var spendService = _harness.CreateSpendService();
-            SpendSummary spendSummary = null;
-            for (var i = 0; i < errorCount; i++)
-            {
-                spendSummary = spendService.GetTotalSpend(supplier.Id);
-            }
-
+            var spendSummary = spendService.GetTotalSpend(supplier.Id);
 
             spendSummary.Should().BeEquivalentTo(new
             {
@@ -63,10 +59,10 @@ namespace ProArch.CodingTest.Tests
                     TotalAmount = 22,
                     Year = 2020
                 });
-            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
-            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
-            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
-            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 1!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 2!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 3!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 4!"));
 
             var spendService = _harness.CreateSpendService();
             var spendSummary = spendService.GetTotalSpend(supplier.Id);
@@ -88,6 +84,22 @@ namespace ProArch.CodingTest.Tests
                     }
                 }
             });
+        }
+        
+        [Fact]
+        public void ShouldThrowExceptionWhenFailoverInvoicesAreOutOfDate()
+        {
+            var supplier = _harness.AddExternalSupplier();
+            _harness.AddFailoverInvoiceCollection(supplier, DateTime.Today.AddDays(-28), Array.Empty<ExternalInvoice>());
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 1!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 2!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 3!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom 4!"));
+
+            var spendService = _harness.CreateSpendService();
+            Action spendSummary = () => spendService.GetTotalSpend(supplier.Id);
+
+            spendSummary.Should().Throw<FailoverInvoicesOutOfDateException>();
         }
     }
 }

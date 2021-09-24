@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.Serialization;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -30,7 +31,13 @@ namespace ProArch.CodingTest.ExternalInvoices
 
             if (executeAndCapture.Outcome == OutcomeType.Failure)
             {
-                return _failoverInvoiceService.GetInvoices(int.Parse(supplierId))
+                var invoiceCollection = _failoverInvoiceService.GetInvoices(int.Parse(supplierId));
+                if (invoiceCollection.Timestamp <= DateTime.Today.AddDays(-28))
+                {
+                    throw new FailoverInvoicesOutOfDateException(invoiceCollection.Timestamp,
+                        executeAndCapture.FinalException);
+                }
+                return invoiceCollection
                     .Invoices.Select(x => new ExternalInvoice
                     {
                         Year = x.Year,
