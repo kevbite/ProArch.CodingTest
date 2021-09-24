@@ -1,5 +1,7 @@
 using System;
 using FluentAssertions;
+using ProArch.CodingTest.External;
+using ProArch.CodingTest.Summary;
 using Xunit;
 
 namespace ProArch.CodingTest.Tests
@@ -22,7 +24,12 @@ namespace ProArch.CodingTest.Tests
             }
 
             var spendService = _harness.CreateSpendService();
-            var spendSummary = spendService.GetTotalSpend(supplier.Id);
+            SpendSummary spendSummary = null;
+            for (var i = 0; i < errorCount; i++)
+            {
+                spendSummary = spendService.GetTotalSpend(supplier.Id);
+            }
+
 
             spendSummary.Should().BeEquivalentTo(new
             {
@@ -33,6 +40,51 @@ namespace ProArch.CodingTest.Tests
                     {
                         Year = 2021,
                         TotalSpend = 100
+                    }
+                }
+            });
+        }
+
+        [Fact]
+        public void ShouldReturnInvoicesFromFailoverInvoicesAfter3Errors()
+        {
+            var supplier = _harness.AddExternalSupplier();
+            _harness.AddFailoverInvoiceCollection(supplier, DateTime.Today, new ExternalInvoice
+                {
+                    TotalAmount = 5,
+                    Year = 2020
+                }, new ExternalInvoice
+                {
+                    TotalAmount = 6,
+                    Year = 2021
+                },
+                new ExternalInvoice
+                {
+                    TotalAmount = 22,
+                    Year = 2020
+                });
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
+            _harness.AddExternalInvoiceAction(() => throw new TimeoutException("Boom!"));
+
+            var spendService = _harness.CreateSpendService();
+            var spendSummary = spendService.GetTotalSpend(supplier.Id);
+
+            spendSummary.Should().BeEquivalentTo(new
+            {
+                Name = supplier.Name,
+                Years = new[]
+                {
+                    new
+                    {
+                        Year = 2020,
+                        TotalSpend = 27
+                    },
+                    new
+                    {
+                        Year = 2021,
+                        TotalSpend = 6
                     }
                 }
             });

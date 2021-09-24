@@ -10,11 +10,12 @@ using ProArch.CodingTest.Suppliers;
 
 namespace ProArch.CodingTest.Tests
 {
-    public class Harness : ISupplierService, IInvoiceRepository, IExternalInvoiceServiceWrapper
+    public class Harness : ISupplierService, IInvoiceRepository, IExternalInvoiceServiceWrapper, IFailoverInvoiceService
     {
         private readonly List<Supplier> _suppliers = new();
         private readonly List<Invoice> _internalInvoices = new();
         private readonly List<(int supplierId, ExternalInvoice invoice)> _externalInvoices = new();
+        private readonly Dictionary<int, FailoverInvoiceCollection> _failoverlInvoices = new();
         private readonly Fixture _fixture = new();
         private readonly Queue<Action> _externalInvoiceGetInvoicesActions = new();
 
@@ -31,7 +32,9 @@ namespace ProArch.CodingTest.Tests
                 .Select(x => x.invoice)
                 .ToArray();
         }
-
+        
+        FailoverInvoiceCollection IFailoverInvoiceService.GetInvoices(int supplierId) => _failoverlInvoices[supplierId];
+        
         public void AddInternalInvoice(Supplier supplier, decimal amount, int year)
         {
             var invoice = _fixture.Build<Invoice>()
@@ -59,7 +62,7 @@ namespace ProArch.CodingTest.Tests
 
         public SpendService CreateSpendService()
         {
-            var externalInvoiceServiceResilienceDecorator = new ExternalInvoiceServiceResilienceDecorator(this);
+            var externalInvoiceServiceResilienceDecorator = new ExternalInvoiceServiceResilienceDecorator(this, this);
 
             var yearAmountsQueryHandler = new YearAmountsQueryHandler(this, externalInvoiceServiceResilienceDecorator);
 
@@ -80,5 +83,18 @@ namespace ProArch.CodingTest.Tests
 
             _externalInvoices.Add((supplier.Id, invoice));
         }
+
+        public FailoverInvoiceCollection AddFailoverInvoiceCollection(Supplier supplier, DateTime timestamp, params ExternalInvoice[] invoices)
+        {
+            var collection = new FailoverInvoiceCollection
+            {
+                Timestamp = timestamp,
+                Invoices = invoices
+            };
+            _failoverlInvoices.Add(supplier.Id, collection);
+
+            return collection;
+        }
+
     }
 }

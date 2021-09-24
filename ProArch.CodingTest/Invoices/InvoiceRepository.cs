@@ -10,9 +10,4 @@ namespace ProArch.CodingTest.Invoices
             return new List<Invoice>().AsQueryable();
         }
     }
-
-    public interface IInvoiceRepository
-    {
-        IQueryable<Invoice> Get();
-    }
 }

@@ -1,6 +1,6 @@
 ﻿namespace ProArch.CodingTest.Invoices
 {
-    public class FailoverInvoiceService
+    public class FailoverInvoiceService : IFailoverInvoiceService
     {
         public FailoverInvoiceCollection GetInvoices(int supplierId)
         {
