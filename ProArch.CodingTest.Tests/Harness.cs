@@ -52,7 +52,9 @@ namespace ProArch.CodingTest.Tests
 
         public SpendService CreateSpendService()
         {
-            return new SpendService(this, this, this);
+            var yearAmountsQueryHandler = new YearAmountsQueryHandler(this, this);
+            
+            return new SpendService(this, yearAmountsQueryHandler);
         }
 
         public void AddExternalInvoice(Supplier supplier, int amount, int year)

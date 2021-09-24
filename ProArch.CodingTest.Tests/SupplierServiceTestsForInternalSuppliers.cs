@@ -11,7 +11,7 @@ namespace ProArch.CodingTest.Tests
         public void ShouldReturnSummaryOfASingleInvoice()
         {
             var supplier = _harness.AddInternalSupplier();
-            _harness.AddExternalInvoice(supplier, 100, 2021);
+            _harness.AddInternalInvoice(supplier, 100, 2021);
 
             var spendService = _harness.CreateSpendService();
             var spendSummary = spendService.GetTotalSpend(supplier.Id);
