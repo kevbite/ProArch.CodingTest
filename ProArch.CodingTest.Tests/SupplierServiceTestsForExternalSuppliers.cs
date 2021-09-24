@@ -3,15 +3,15 @@ using Xunit;
 
 namespace ProArch.CodingTest.Tests
 {
-    public class SupplierServiceTestsForInternalSuppliers
+    public class SupplierServiceTestsForExternalSuppliers
     {
         private readonly Harness _harness = new();
 
         [Fact]
-        public void ShouldReturnSummaryOfASingleInvoiceForInternalSupplier()
+        public void ShouldReturnSummaryOfASingleInvoice()
         {
-            var supplier = _harness.AddInternalSupplier();
-            _harness.AddInternalInvoice(supplier, 100, 2021);
+            var supplier = _harness.AddExternalSupplier();
+            _harness.AddExternalInvoice(supplier, 100, 2021);
 
             var spendService = _harness.CreateSpendService();
             var spendSummary = spendService.GetTotalSpend(supplier.Id);
@@ -31,12 +31,12 @@ namespace ProArch.CodingTest.Tests
         }
 
         [Fact]
-        public void ShouldReturnSummaryOfOnlySuppliedSupplierForInternalSupplier()
+        public void ShouldReturnSummaryOfOnlySuppliedSupplier()
         {
-            var supplier1 = _harness.AddInternalSupplier();
-            var supplier2 = _harness.AddInternalSupplier();
-            _harness.AddInternalInvoice(supplier1, 50, 2000);
-            _harness.AddInternalInvoice(supplier2, 150, 2021);
+            var supplier1 = _harness.AddExternalSupplier();
+            var supplier2 = _harness.AddExternalSupplier();
+            _harness.AddExternalInvoice(supplier1, 50, 2000);
+            _harness.AddExternalInvoice(supplier2, 150, 2021);
 
             var spendService = _harness.CreateSpendService();
             var spendSummary = spendService.GetTotalSpend(supplier2.Id);
@@ -58,12 +58,12 @@ namespace ProArch.CodingTest.Tests
         [Fact]
         public void ShouldReturnSummaryOfYearsSummed()
         {
-            var supplier1 = _harness.AddInternalSupplier();
-            _harness.AddInternalInvoice(supplier1, 10, 2000);
-            _harness.AddInternalInvoice(supplier1, 20, 2000);
-            _harness.AddInternalInvoice(supplier1, 30, 2001);
-            _harness.AddInternalInvoice(supplier1, 40, 2001);
-            _harness.AddInternalInvoice(supplier1, 50, 2002);
+            var supplier1 = _harness.AddExternalSupplier();
+            _harness.AddExternalInvoice(supplier1, 10, 2000);
+            _harness.AddExternalInvoice(supplier1, 20, 2000);
+            _harness.AddExternalInvoice(supplier1, 30, 2001);
+            _harness.AddExternalInvoice(supplier1, 40, 2001);
+            _harness.AddExternalInvoice(supplier1, 50, 2002);
 
             var spendService = _harness.CreateSpendService();
             var spendSummary = spendService.GetTotalSpend(supplier1.Id);
